@@ -1,0 +1,30 @@
+# ---- Agent framework ----
+langgraph
+langgraph-checkpoint-postgres
+langchain
+langchain-core
+langchain-text-splitters
+
+# ---- LLM provider (Gemini, free tier via Google AI Studio) ----
+langchain-google-genai
+
+# ---- Vector store / database ----
+langchain-postgres
+psycopg[binary,pool]
+
+# ---- Observability and evaluation ----
+langsmith
+
+# ---- API service ----
+fastapi
+uvicorn[standard]
+pydantic
+httpx
+
+# ---- Config and data collection ----
+python-dotenv
+beautifulsoup4
+
+# ---- Testing ----
+pytest
+pytest-asyncio
