@@ -5,15 +5,19 @@ graph = build_graph()
 
 reports = [
     "Our checkout API started returning 500 errors right after the latest deploy.",
-    "How do i find slow queries in PostgresSQL.",
-    "Someone is trying thousands of passwords agains our login endpoint.",
+    "Someone is trying thousands of passwords agains our login endpoint from 203.0.113.50.",
     "Users in Mumbai cannot reach the site, but Delhi works fine,",
 ]
 
 for text in reports:
     result = graph.invoke(new_incident(text))
     print(text)
-    print(" intent: ",result["intent"])
+    # print(" intent: ",result["intent"])
     print(" category ",result["category"])
-    print(" history ",result["history"])
+    print(" proposed: ",result["proposed_action"])
+    print(" resolved:",result["resolved"])
+    print(" history: ")
+    for line in result["history"]:
+        print("  --",line)
+        
     print()
