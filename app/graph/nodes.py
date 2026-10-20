@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 from app.graph.state import Category, IncidentState, Intent
 from app.llm import get_llm
+from langgraph.types import interrupt
+
+
 
 from app.tools.simulated_tools import (
     ACTIONS,
@@ -93,6 +96,7 @@ def propose_fix(state : IncidentState)-> dict:
         }
     return{
             "proposed_action":action,
+            "approval": None,
             "history":[
                 f"proposed {proposal.name} or {proposal.target} (risk: {action['risk']})"
             ],
@@ -114,3 +118,91 @@ def varify(state : IncidentState) -> dict:
         "resolved" : healthy,
         "history" : [f"verification {'passed' if healthy else 'failed'}"],
     }
+
+def to_text(response) -> str:
+     """Models sometimes return a list of part instead of a plan string."""
+     content = response.content
+     if isinstance(content,str):
+          return content
+     parts = []
+     for part in content:
+          if isinstance(part,str):
+               parts.append(part)
+          elif isinstance(part,dict) and part.get("type") == "text":
+               parts.append(part.get("text",""))
+     return "".join(parts)
+
+
+# ------ answer (for information requests) -------
+
+def answer(state : IncidentState) -> dict:
+     response = get_llm().invoke(
+          "Answer this engineering question conscisely (at most 5 sentences) : \n"
+          f"{state['incident_text']}"
+     )
+     return {
+          "summary": to_text(response),
+          "history":["answered information request"],
+     }
+
+
+# ------------- human approval -------------
+
+def human_approval(state : IncidentState) -> dict:
+     # The graph PAUSES here and hands this dictionary to whoever is in charge.
+     #  it resumes when someone sends back a dicision.
+
+     decision = interrupt(
+          {
+               "question":"Approve this action?",
+               "incident":state["incident_text"],
+               "action":state["proposed_action"],
+          }
+     )
+
+     approval = decision.get("approval")
+     if approval not in ("approved","rejected"):
+          approval = "rejected"
+     note = decision.get("note")
+
+     entry = f"human {approval}"
+     if note:
+          entry+= f" : {note}"
+
+     return {
+          "approval" : approval,
+          "reviwer_note":note,
+          "revisions":state["revisions"] + (0 if approval == "approved" else 1),
+          "history": [entry],
+     }
+
+
+# ======= summarize ===========
+
+def summarize(state : IncidentState) -> dict:
+     prompt = (
+          "write a short incident report (4 to 6 lines) with : what happened, "
+          "what was done, and the outcome. \n\n"
+          f" Incident : {state['incident_text']}\n\n"
+          "Event log:\n"+"\n".join(state["history"])
+     )
+     return{
+          "summary":to_text(get_llm().invoke(prompt)),
+          "history":["wrote incident summary"],
+     }
+
+
+def escalate(state: IncidentState) -> dict:
+    action = state["proposed_action"]
+    message = (
+        f"ESCALATED to on-call engineer after {state['attempts']} execution "
+        f"attempt(s) and {state['revisions']} rejection(s). "
+        f"Latest proposal: {action['name']} on {action['target']}."
+    )
+    return {
+        "resolved": False,
+        "summary": message,
+        "history": ["escalated to on-call engineer"],
+    }
+
+
