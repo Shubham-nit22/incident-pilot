@@ -1,5 +1,7 @@
-from langgraph.checkpoint import InMemorySaver
-from langgraph.types import Command
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command 
+
+
 
 from app.graph.build import build_graph
 from app.graph.state import new_incident
@@ -12,7 +14,7 @@ def run_incident(text : str,thread_id : str)-> dict:
     graph.invoke(new_incident(text),config)
 
     #while the graph is paused, ask the human what to do
-    snapshot = graph.get.state(config)
+    snapshot = graph.get_state(config)
     while snapshot.next:
         request = snapshot.tasks[0].interrupts[0].value
         action = request["action"]

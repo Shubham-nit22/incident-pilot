@@ -19,7 +19,7 @@ from app.graph.routing import (
 from app.graph.state import IncidentState
 
 
-def build_graph():
+def build_graph(checkpointer=None):
     builder = StateGraph(IncidentState)
 
     builder.add_node("classify",classify)
