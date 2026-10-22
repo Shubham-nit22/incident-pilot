@@ -1,8 +1,6 @@
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command 
 
-
-
 from app.graph.build import build_graph
 from app.graph.state import new_incident
 
