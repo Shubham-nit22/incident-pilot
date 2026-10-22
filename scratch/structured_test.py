@@ -19,4 +19,3 @@ for text in reports:
     print(text)
     print(" -> ",classifier.invoke(f"Classify this report : \n{text}"))
     
-Navratri-Diwali . 
