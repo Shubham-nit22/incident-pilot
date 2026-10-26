@@ -5,7 +5,7 @@ MAX_ATTEMPTS = 3     # how many times we execute a fix before giving up
 MAX_REVISIONS = 2    # how many times a human can reject proposals before we escalate
 
 
-def after_classify(state: IncidentState) -> str:
+def after_retrieve(state: IncidentState) -> str:
     if state["intent"] == "info_request":
         return "answer"
     return "propose_fix"

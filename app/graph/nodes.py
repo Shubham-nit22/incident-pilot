@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from app.graph.state import Category, IncidentState, Intent
 from app.llm import get_llm
 from langgraph.types import interrupt
+from app.rag.embeddings import embed_query
+from app.rag.store import connect,research
 
 
 
@@ -57,8 +59,11 @@ Propose exactly ONE action to fix the incident.
 Available actions : 
 {action_list}
 
-Incident (category : {category}):
+Incident (category: {category}):
 {incident_text}
+
+Relevant runbook excerpts:
+{docs}
 
 {extra_context}
 
@@ -85,6 +90,7 @@ def propose_fix(state : IncidentState)-> dict:
             category = state['category'],
             incident_text = state["incident_text"],
             extra_context = "\n\n".join(extra),
+                    docs=format_docs(state["retrieved_docs"]),
         )
     proposal = get_llm().with_structured_output(FixProposal).invoke(prompt)
 
@@ -135,15 +141,35 @@ def to_text(response) -> str:
 
 # ------ answer (for information requests) -------
 
-def answer(state : IncidentState) -> dict:
-     response = get_llm().invoke(
-          "Answer this engineering question conscisely (at most 5 sentences) : \n"
-          f"{state['incident_text']}"
-     )
-     return {
-          "summary": to_text(response),
-          "history":["answered information request"],
-     }
+
+
+def answer(state: IncidentState) -> dict:
+    prompt = (
+        "Answer the question using ONLY the runbook excerpts below. "
+        "Cite excerpt numbers like [1]. If the excerpts do not contain the answer, "
+        "say so clearly instead of guessing.\n\n"
+        f"Excerpts:\n{format_docs(state['retrieved_docs'])}\n\n"
+        f"Question: {state['incident_text']}"
+    )
+    text = to_text(get_llm().invoke(prompt))
+
+    urls = sorted({d["source_url"] for d in state["retrieved_docs"] if d.get("source_url")})
+    if urls:
+        text += "\n\nSources:\n" + "\n".join(f"- {u}" for u in urls)
+
+    return {"summary": text, "history": ["answered information request"]}
+
+
+
+# def answer(state : IncidentState) -> dict:
+#      response = get_llm().invoke(
+#           "Answer this engineering question conscisely (at most 5 sentences) : \n"
+#           f"{state['incident_text']}"
+#      )
+#      return {
+#           "summary": to_text(response),
+#           "history":["answered information request"],
+#      }
 
 
 # ------------- human approval -------------
@@ -206,3 +232,27 @@ def escalate(state: IncidentState) -> dict:
     }
 
 
+def retrieve(state: IncidentState) -> dict:
+     category = state["category"]
+     try:
+          vector = embed_query(state["incident_text"])
+          with connect() as conn:
+               docs = research(
+                    conn,
+                    vector, 
+                    k=4,
+                    category=None if category == "other" else category,
+               )
+          note = f"retrieved {len(docs)} runbook excerpts"
+     except Exception as error:
+          docs = []
+          note = f" retrieval failed : {repr(error)[:100]}"
+     return {"retrieved_docs": docs,"history":[note]}
+
+
+def format_docs(docs:list[dict])-> str:
+     if not docs:
+          return "(no runbook excerpts found)"
+     return "\n\n".join(
+          f"[{i}] ({d['source']}) {d['text']}" for i,d in enumerate(docs,start=1)
+     )

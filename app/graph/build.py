@@ -7,11 +7,12 @@ from app.graph.nodes import (
     human_approval,
     propose_fix,
     summarize,
-    varify
+    varify,
+    retrieve
 )
 from app.graph.routing import (
     after_approval,
-    after_classify,
+    after_retrieve,
     after_propose,
     after_verify,
 )
@@ -30,6 +31,7 @@ def build_graph(checkpointer=None):
     builder.add_node("verify",varify)
     builder.add_node("summarize",summarize)
     builder.add_node("escalate",escalate)
+    builder.add_node("retrieve",retrieve)
 
     # TEMPORARY straight line. Step 6 replaces this with routing,
     # loops and a human approval pause.
@@ -41,9 +43,10 @@ def build_graph(checkpointer=None):
     builder.add_edge("answer",END)
     builder.add_edge("summarize",END)
     builder.add_edge("escalate",END)
+    builder.add_edge("classify","retrieve")
 
     #Conditional Edges
-    builder.add_conditional_edges("classify", after_classify,["answer","propose_fix"])
+    builder.add_conditional_edges("classify", after_retrieve,["answer","propose_fix"])
     builder.add_conditional_edges("propose_fix",after_propose,["human_approval","execute"])
     builder.add_conditional_edges(
         "human_approval",after_approval,["execute","propose_fix","escalate"]
