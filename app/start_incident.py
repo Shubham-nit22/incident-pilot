@@ -11,7 +11,11 @@ DEFAULT = (
 text = " ".join(sys.argv[1:]) or DEFAULT
 
 thread_id = f" incident-{uuid.uuid4().hex[:8]}"
-config = {"configurable":{"thread_id":thread_id}}
+config = {
+    "configurable": {"thread_id": thread_id},
+    "run_name": "incident-run",
+    "tags": ["dev", "cli"],
+}
 
 with get_graph() as graph:
     graph.invoke(new_incident(text),config)

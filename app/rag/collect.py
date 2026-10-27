@@ -34,7 +34,7 @@ def collect_k8s(category: str, folder: Path, pattern : str) -> int:
         return 0
 
     for src in sorted(folder.glob(pattern)):
-        if src.name.startswith("_index") or src.stat().st_size() < 500:
+        if src.name.startswith("_index") or src.stat().st_size < 500:
             continue
         dest = OUT / category / f"k8s__{src.stem}.md"
         copy_with_header(src,dest,k8s_url(src))

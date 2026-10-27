@@ -6,7 +6,12 @@ if len(sys.argv) < 2:
     sys.exit("Usage: python -m app.resume_incident <thread_id>")
 
 thread_id = sys.argv[1]
-config = {"configurable":{"thread_id":thread_id}}
+config = {
+    "configurable": {"thread_id": thread_id},
+    "run_name": "incident-resume",
+    "tags": ["dev", "cli"],
+}
+
 
 with get_graph() as graph:
     snapshot = graph.get_state(config)

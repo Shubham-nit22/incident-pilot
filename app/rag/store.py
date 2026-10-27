@@ -4,6 +4,7 @@ import psycopg
 from dotenv import load_dotenv
 
 from app.rag.embeddings import DIMENSIONS
+from langsmith import traceable
 
 load_dotenv()
 
@@ -40,6 +41,12 @@ def ensure_schema(conn: psycopg.Connection) -> None:
     conn.commit()
 
 
+
+@traceable(
+    name="pgvector_search",
+    run_type="retriever",
+    process_inputs=lambda inputs: {"k": inputs.get("k"), "category": inputs.get("category")},
+)
 def research(conn, query_vector, k: int = 4, category : str | None= None) -> list[dict]:
     """Return the k most similar chunks, optionally only from one category."""
     vec = to_pgvector(query_vector)
