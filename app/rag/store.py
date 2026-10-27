@@ -20,18 +20,18 @@ def to_pgvector(vector: list[float]) -> str:
 SCHEMA = [
     "CREATE EXTENSION IF NOT EXISTS vector",
     f"""
-    CREATE TABLE IF NOT EXIST doc_chucks (
+    CREATE TABLE IF NOT EXISTS doc_chunks (
     id           BIGSERIAL PRIMARY KEY,
     content      TEXT NOT NULL,
     content_hash TEXT NOT NULL UNIQUE,
     category     TEXT NOT NULL,
     source       TEXT NOT NULL,
     source_url   TEXT,
-    chunk_index  INT NOT NULL
+    chunk_index  INT NOT NULL,
     embedding    vector({DIMENSIONS}) NOT NULL
     )
 """,
-    "CREATE INDEX IF NOT EXISTS doc_chunk_category_idx ON doc_chunks (category)",
+    "CREATE INDEX IF NOT EXISTS doc_chunks_category_idx ON doc_chunks (category)",
 ]
 
 

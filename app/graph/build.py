@@ -24,8 +24,8 @@ def build_graph(checkpointer=None):
     builder = StateGraph(IncidentState)
 
     builder.add_node("classify",classify)
-    builder.add_node("answer",answer),
-    builder.add_node("propose_fix",propose_fix),
+    builder.add_node("answer",answer)
+    builder.add_node("propose_fix",propose_fix)
     builder.add_node("human_approval",human_approval)
     builder.add_node("execute",execute)
     builder.add_node("verify",varify)
@@ -39,14 +39,16 @@ def build_graph(checkpointer=None):
     
     #fixed Edges
     builder.add_edge(START,"classify")
+    builder.add_edge("classify","retrieve")
+    
     builder.add_edge("execute","verify")
     builder.add_edge("answer",END)
     builder.add_edge("summarize",END)
     builder.add_edge("escalate",END)
-    builder.add_edge("classify","retrieve")
+    
 
     #Conditional Edges
-    builder.add_conditional_edges("classify", after_retrieve,["answer","propose_fix"])
+    builder.add_conditional_edges("retrieve", after_retrieve,["answer","propose_fix"])
     builder.add_conditional_edges("propose_fix",after_propose,["human_approval","execute"])
     builder.add_conditional_edges(
         "human_approval",after_approval,["execute","propose_fix","escalate"]

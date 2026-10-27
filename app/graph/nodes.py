@@ -159,6 +159,41 @@ def answer(state: IncidentState) -> dict:
 
     return {"summary": text, "history": ["answered information request"]}
 
+# def answer(state: IncidentState) -> dict:
+#     docs = state["retrieved_docs"]
+
+#     print(f"\n[DEBUG] Intent: {state['intent']}")
+#     print(f"[DEBUG] Category: {state['category']}")
+#     print(f"[DEBUG] Retrieved docs: {len(docs)}")
+
+#     for i, doc in enumerate(docs, start=1):
+#         print(f"[DEBUG] Doc {i}: {doc.get('source')}")
+#         print(f"[DEBUG] Fields: {list(doc.keys())}")
+
+#     prompt = (
+#         "Answer the question using ONLY the runbook excerpts below. "
+#         "Cite excerpt numbers like [1]. If the excerpts do not contain the answer, "
+#         "say so clearly instead of guessing.\n\n"
+#         f"Excerpts:\n{format_docs(docs)}\n\n"
+#         f"Question: {state['incident_text']}"
+#     )
+
+#     text = to_text(get_llm().invoke(prompt))
+
+#     urls = sorted({
+#         d["source_url"]
+#         for d in docs
+#         if d.get("source_url")
+#     })
+
+#     if urls:
+#         text += "\n\nSources:\n" + "\n".join(f"- {u}" for u in urls)
+
+#     return {
+#         "summary": text,
+#         "history": ["answered information request"],
+#     }
+
 
 
 # def answer(state : IncidentState) -> dict:
@@ -230,6 +265,8 @@ def escalate(state: IncidentState) -> dict:
         "summary": message,
         "history": ["escalated to on-call engineer"],
     }
+
+
 
 
 def retrieve(state: IncidentState) -> dict:

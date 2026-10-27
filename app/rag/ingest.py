@@ -68,7 +68,7 @@ def load_chunks() -> list[dict]:
                 }
             )
 
-            return chunks
+    return chunks
 
 
 def embed_with_retry(texts: list[str]) -> list[list[float]]:
@@ -82,7 +82,7 @@ def embed_with_retry(texts: list[str]) -> list[list[float]]:
             )
             time.sleep(wait)
 
-        raise RuntimeError("Embedding kept failing. Try again later.")
+    raise RuntimeError("Embedding kept failing. Try again later.")
 
 
 def main() -> None:
@@ -100,14 +100,14 @@ def main() -> None:
 
         for start in range(0, len(todo), BATCH_SIZE):
             batch = todo[start : start + BATCH_SIZE]
-            vectors = embed_with_retry([c["connect"]] for c in batch)
+            vectors = embed_with_retry([c["content"] for c in batch])
 
             for chunk, vector in zip(batch, vectors):
                 assert len(vector) == DIMENSIONS
 
                 conn.execute(
                     """
-                    INSERT INTO dock_chunks
+                    INSERT INTO doc_chunks
                     (content, content_hash, category, source, source_url,
                     chunk_index, embedding)
                     VALUES (%s, %s, %s, %s,%s,%s,%s::vector)
