@@ -43,7 +43,7 @@ app = FastAPI(title="IncidentPilot",version="0.1.0",lifespan=lifespan)
 api_key_header = APIKeyHeader(name="X-API-Key",auto_error=False)
 
 def require_api_key(key: Optional[str]= Depends(api_key_header)) -> None:
-    expected = os.environ.get("API_KEY","")
+    expected = os.environ.get("GEMINI_API_KEY","")
     if not expected or not key or not secrets.compare_digest(key.encode(),expected.encode()):
         raise HTTPException(status_code=401,detail="Invalid or missing API key")
 
@@ -122,7 +122,7 @@ def create_incident(body: IncidentRequest,graph=Depends(get_graph)):
     graph.invoke(new_incident(body.text), config_for(thread_id))
     return describe(graph,thread_id)
 
-@app.post("/incident/stream",dependencies=[Depends(require_api_key)])
+@app.post("/incidents/stream",dependencies=[Depends(require_api_key)])
 def stream_incident(body: IncidentRequest, graph=Depends(get_graph)):
     """Same as above, but sends progess events as each step finishes,"""
     thread_id = f"incident-{uuid.uuid4().hex[:8]}"
@@ -157,7 +157,6 @@ def get_incidents(thread_id:str,graph=Depends(get_graph)):
 @app.post("/incidents/{thread_id}/approve",
           response_model=IncidentStatus,
           dependencies=[Depends(require_api_key)])
-)
 def approve_incident(thread_id:str, body : ApprovalRequest, graph=Depends(get_graph)):
     current = describe(graph, thread_id)
     if current.status != "awaiting_approval":
