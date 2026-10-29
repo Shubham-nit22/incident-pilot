@@ -1,4 +1,5 @@
 import os,sys,time,uuid
+import subprocess
 
 from dotenv import load_dotenv
 from langgraph.checkpoint.memory import InMemorySaver
@@ -12,9 +13,13 @@ from evals.evaluators import (
     action_acceptable,
     category_correct,
     finished_ok,
+    grounded,
     high_risk_gated,
     intent_correct,
+    retrieval_on_topic,
 )
+
+
 
 load_dotenv()
 
@@ -25,6 +30,23 @@ PAUSE_SECONDS = 3
 
 graph = build_graph(checkpointer=InMemorySaver())
 
+EVALUATORS = [
+    intent_correct,
+    category_correct,
+    action_acceptable,
+    high_risk_gated,
+    finished_ok,
+    retrieval_on_topic,
+    grounded,
+]
+
+def git_commit() -> str | None:
+    try:
+        return subprocess.check_output(["git","rev-parse","--short","HEAD"],text=True).strip()
+    except Exception:
+        return None
+
+    
 def run_graph(inputs : dict) -> dict:
     """Run one incident A fake reviewer approves every pause."""
     time.sleep(PAUSE_SECONDS)
@@ -43,21 +65,35 @@ def run_graph(inputs : dict) -> dict:
                 config,
             )
             snapshot = graph.get_state(config)
-            pause += 1
+            pauses += 1
 
         state = snapshot.values
         action = state.get("proposed_action")
+        docs = state.get("retrieved_docs",[])
+
         return {
             "intent" : state.get("intent"),
             "category": state.get("category"),
             "proposed_action_name": action["name"] if action else None,
+            "risk": action["risk"] if action else None,
             "resolved":state.get("resolved"),
             "summary": state.get("summary"),
             "history": state.get("history",[]),
-            "retrieved_sources": [d["source"] for d in state.get("retrieved_docs",[])],
+            "retrieved_sources": [d["source"] for d in docs],
+            "retrieved_categories": [d["category"] for d in docs],
+            "retrieved_texts":[d["text"] for d in docs],
         }
     except Exception as error:
-        return {"error": repr(error)[:300], "history":[]}
+     return {
+        "error": repr(error)[:300],
+        "intent": None,
+        "category": None,
+        "proposed_action_name": None,
+        "resolved": False,
+        "summary": None,
+        "history": [],
+        "retrieved_sources": [],
+    }
 
 
 def main() -> None:
@@ -72,23 +108,30 @@ def main() -> None:
     results = client.evaluate(
         run_graph,
         data = data,
-        evaluators=[intent_correct,category_correct,action_acceptable,high_risk_gated,finished_ok],
+        evaluators=EVALUATORS,
         experiment_prefix=prefix,
         max_concurrency=1,
-        metadata={"model": os.environ.get("GEMINI_MODEL"),"split":split},
+        metadata={
+            "model": os.environ.get("GEMINI_MODEL"),
+            "split":split,
+            "git_commit":git_commit()},
     )
 
     totals : dict[str,list[float]] ={}
     try:
         for row in results:
             for item in row["evaluation_results"]["results"]:
-                totals.setdefault(item.key,[]).append(float(item.score or 0))
-            print("\n summary")
-            for key,score in totals.items():
-                print(f" {key:20s} {sum(score) / len(score):.0%} ({len(score)} examples)")
+                if item.score is None:
+                    continue
+                totals.setdefault(item.key, []).append(float(item.score))
+        print("\nSummary")
+        for key, scores in totals.items():
+            print(f"  {key:20s} {sum(scores) / len(scores):.0%}  ({len(scores)} examples)")
     except Exception as error:
-        print("Could not print a summary here; open the experiment in LangSmith.",repr(error)[:120])
+        print("Could not print a summary here; open the experiment in LangSmith.", repr(error)[:120])
+
 
 if __name__ == "__main__":
     main()
-    
+
+
