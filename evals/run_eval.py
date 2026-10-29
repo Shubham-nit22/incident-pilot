@@ -99,11 +99,24 @@ def run_graph(inputs : dict) -> dict:
 def main() -> None:
     split = sys.argv[1] if len(sys.argv) > 1 else "dev"
     prefix  = sys.argv[2] if len(sys.argv)>2 else "baseline"
+    # limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
+
+    # dataset_name = f"incident-triage-{split}"
+    # client = Client()
+    # data = client.list_examples(dataset_name=dataset_name, limit=limit) if limit else dataset_name
     limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
+    only = sys.argv[4] if len(sys.argv) > 4 else None   # "info_request" or "incident"
 
     dataset_name = f"incident-triage-{split}"
     client = Client()
-    data = client.list_examples(dataset_name=dataset_name, limit=limit) if limit else dataset_name
+
+    data = dataset_name
+    if limit or only:
+        examples = list(client.list_examples(dataset_name=dataset_name))
+        if only:
+            examples = [e for e in examples if e.outputs["intent"] == only]
+        data = examples[:limit] if limit else examples
+
 
     results = client.evaluate(
         run_graph,
