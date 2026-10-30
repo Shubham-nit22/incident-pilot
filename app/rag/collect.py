@@ -18,40 +18,44 @@ OWASP_FILES = [
     "Password_Storage_Cheat_Sheet.md",
 ]
 
-def k8s_url(path: Path)-> str:
+def k8s_url(path: Path) -> str:
     rel = path.relative_to(K8S_ROOT).with_suffix("")
-    return f"https://kubernetes.io/{rel.as_posix}/"
+    return f"https://kubernetes.io/{rel.as_posix()}/"
+
 
 def copy_with_header(src: Path, dest: Path, url: str) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     body = src.read_text(encoding="utf-8")
     dest.write_text(f"SOURCE_URL: {url}\n\n{body}", encoding="utf-8")
 
-def collect_k8s(category: str, folder: Path, pattern : str) -> int:
+
+
+def collect_k8s(category: str, folder: Path, pattern: str, skip: tuple = ()) -> int:
     count = 0
     if not folder.exists():
-        print(f"MISSING Folder : {folder}")
+        print(f"MISSING folder: {folder}")
         return 0
-
     for src in sorted(folder.glob(pattern)):
-        if src.name.startswith("_index") or src.stat().st_size < 500:
+        if src.name in skip or src.name.startswith("_index") or src.stat().st_size < 500:
             continue
         dest = OUT / category / f"k8s__{src.stem}.md"
-        copy_with_header(src,dest,k8s_url(src))
-        count+=1
+        copy_with_header(src, dest, k8s_url(src))
+        count += 1
     return count
 
+
 counts = {"deployment":0, "network":0, "security":0}
-counts["deployment"]+= collect_k8s(
-    "deployment",K8S_ROOT / "docs/tasks/debug/debug-application","*.md"
+counts["deployment"] += collect_k8s(
+    "deployment", K8S_ROOT / "docs/tasks/debug/debug-application", "*.md",
+    skip=("debug-service.md",),
 )
 
 counts["deployment"]+= collect_k8s(
     "deployment",K8S_ROOT / "docs/concepts/workloads/controllers","deployment.md"
 )
 
-counts["network"]+= collect_k8s(
-    "network",K8S_ROOT / "docs/concepts/services-networking","*.md"
+counts["network"] += collect_k8s(
+    "network", K8S_ROOT / "docs/tasks/debug/debug-application", "debug-service.md"
 )
 
 for name in OWASP_FILES:

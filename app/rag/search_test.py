@@ -6,7 +6,9 @@ QUERIES = [
     ("Checkout API returns 500 errors after a deploy, how to roll back","deployment"),
     ("Users cannot resolve the service name, DNS problem in the cluster","network"),
     ("Thousands of failed login attempts from one IP address","security"),
+    ("Disk usage on the database reached 98 percent and writes are failing", "database"),
 ]
+
 
 with connect() as conn:
     print("Chunks per category")

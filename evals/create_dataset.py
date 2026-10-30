@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from langsmith import Client
 
 from evals.dataset import CASES
+from evals.dataset_hard import HARD_CASES
 
 load_dotenv()
 client = Client()
@@ -9,7 +10,9 @@ client = Client()
 splits = {
     "dev": [c for i, c in enumerate(CASES) if i % 4 != 3],
     "test":[ c for i,c in enumerate(CASES) if i % 4 == 3],
+    "hard": HARD_CASES,
 }
+
 
 for split, cases in splits.items():
     name = f"incident-triage-{split}"

@@ -41,7 +41,7 @@ def classify(state : IncidentState) -> dict:
     return{
         "intent":result.intent,
         "category":result.category,
-        "history":[f"classified as{result.intent}/{result.category}"],
+        "history":[f"classified as {result.intent}/{result.category}"],
     }
 
 class FixProposal(BaseModel):
@@ -104,7 +104,7 @@ def propose_fix(state : IncidentState)-> dict:
             "proposed_action":action,
             "approval": None,
             "history":[
-                f"proposed {proposal.name} or {proposal.target} (risk: {action['risk']})"
+                f"proposed {proposal.name} on {proposal.target} (risk: {action['risk']})"
             ],
         }
 
@@ -242,11 +242,16 @@ def human_approval(state : IncidentState) -> dict:
 
 def summarize(state : IncidentState) -> dict:
      prompt = (
-          "write a short incident report (4 to 6 lines) with : what happened, "
-          "what was done, and the outcome. \n\n"
-          f" Incident : {state['incident_text']}\n\n"
-          "Event log:\n"+"\n".join(state["history"])
-     )
+        "Write a short incident report (4 to 6 lines) with: what happened, "
+        "what was done, and the outcome.\n"
+        "Rules: describe ONLY what the event log below shows. Do not claim any "
+        "effect that the log does not state (for example, do not say service was "
+        "restored; say that verification passed or failed). All actions in this "
+        "log were simulated.\n\n"
+        f"Incident: {state['incident_text']}\n\n"
+        "Event log:\n" + "\n".join(state["history"])
+    )
+         
      return{
           "summary":to_text(get_llm().invoke(prompt)),
           "history":["wrote incident summary"],
