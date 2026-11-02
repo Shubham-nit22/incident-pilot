@@ -48,7 +48,7 @@ def make_graph(monkeypatch):
         monkeypatch.setattr("app.graph.nodes.embed_query",lambda text: [0,0])
         monkeypatch.setattr("app.graph.nodes.connect",lambda:FakeConnection())
         monkeypatch.setattr(
-            "app.graph.nodes.search",lambda conn,vector, k=4,category=None: []
+            "app.graph.nodes.research",lambda conn,vector, k=4,category=None: []
         )
         monkeypatch.setattr(
             "app.graph.nodes.run_action",lambda name, target: {"ok":True,"message":"fake"}
@@ -64,7 +64,7 @@ def start(graph, text="Something broke"):
     graph.invoke(new_incident(text),config)
     return config, graph.get_state(config)
 
-def resume(graph,config,approval,note:None):
+def resume(graph,config,approval,note=None):
     graph.invoke(Command(resume={"approval":approval,"note":note}), config)
     return graph.get_state(config)
 
@@ -81,17 +81,26 @@ def test_question_is_answered_without_any_fix(make_graph):
     assert state.values["proposed_action"] is None
 
 def test_low_risk_fix_runs_without_pausing(make_graph):
-    graph = make_graph(INCIDENT,LOW_RISK)
-    _,state=  start(graph)
+    graph = make_graph(INCIDENT, LOW_RISK)
+    _, state = start(graph)
 
     assert not state.next
     assert state.values["resolved"] is True
+    assert not any(line.startswith("human") for line in state.values["history"])
+
+
+def test_high_risk_fix_waits_for_a_human_then_runs(make_graph):
+    graph = make_graph(INCIDENT, HIGH_RISK)
+    config, state = start(graph)
+
+    assert state.next                                   # paused
+    assert not any(line.startswith("executed") for line in state.values["history"])
 
     state = resume(graph, config, "approved")
     history = state.values["history"]
 
     assert state.values["resolved"] is True
-    assert position(history,"proposed ") < position(history,"human approved") < position(history, "executed ")
+    assert position(history, "proposed ") < position(history, "human approved") < position(history, "executed ")
 
 
 def test_two_rejections_escalate_without_executing(make_graph):
