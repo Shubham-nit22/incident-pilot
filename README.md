@@ -87,10 +87,11 @@ KB v1 / v2 = the knowledge base before and after the fixes described in the engi
 
 **How to read these numbers**
 
+- On the held-out test set, acceptable-action accuracy was 80% (8 of 10), lower than on dev. With 10 examples the uncertainty is large, but it suggests the dev results were optimistic. The test set contains only 2 questions, so its `grounded` score is not informative.
 - With 30 examples, one example is about 3 points. The category score moved from 97% to 93% between runs even though classification does not depend on the knowledge base, so differences of 1 or 2 examples are treated as noise.
 - Several metrics are saturated, so they can no longer show improvement. `retrieval_on_topic` only checks the category, not whether the excerpt is useful.
 - `high_risk_gated` at 100% is an architectural property (routing is decided by code), not evidence that the model resists manipulation. I verified the check can fail by deliberately breaking the routing.
-- The `grounded` judge uses the same model family as the agent. I checked it on a deliberately fabricated answer (it caught it) and reviewed verdicts by hand: **[fill in: agreed with X of Y]**.
+- The `grounded` judge uses the same model family as the agent. I checked it on a deliberately fabricated answer (it caught it) and reviewed 14 verdicts by hand: I agreed with 13.
 - Retry and escalation paths are covered by unit tests with a fake model, not by the evals.
 
 ## Engineering log: what went wrong and what I changed
